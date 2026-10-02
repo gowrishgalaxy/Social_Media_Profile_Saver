@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Profile Saver</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-title">
+                <h1>📱 Social Media Profile Saver</h1>
+            </div>
+            <div class="header-actions">
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search profiles...">
+                </div>
+                <button id="addProfileBtn" class="btn btn-primary">+ Add Profile</button>
+                <button id="addTopicBtn" class="btn btn-primary">+ Add Topic</button>
+                <button id="importBtn" class="btn btn-secondary">Import</button>
+                <button id="exportBtn" class="btn btn-secondary">Export</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Platform Tabs -->
+    <nav class="platform-tabs">
+        <div class="tabs-container" id="platformTabsContainer">
+            <!-- Populated by JavaScript -->
+        </div>
+        <button id="addPlatformBtn" class="btn-add-platform" title="Add Custom Platform">+</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div id="contentArea" class="content-area">
+            <!-- Populated by JavaScript -->
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <button id="recycleBinBtn" class="btn btn-secondary">Recycle Bin</button>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Add/Edit Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2>Save Social Media Profile</h2>
+                <button class="modal-close" data-close="profileModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="profileUrl">Profile URL</label>
+                    <input type="text" id="profileUrl" class="form-input" placeholder="Paste social profile URL">
+                    <button id="fetchProfileBtn" class="btn btn-secondary btn-small">Fetch Profile Information</button>
+                </div>
+
+                <!-- Profile Preview -->
+                <div id="profilePreview" class="profile-preview" style="display: none;">
+                    <img id="previewImage" src="" alt="Profile" class="preview-image">
+                    <div class="preview-info">
+                        <div class="preview-name" id="previewName"></div>
+                        <div class="preview-username" id="previewUsername"></div>
+                        <div class="preview-platform" id="previewPlatform"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileName">Profile Name *</label>
+                    <input type="text" id="profileName" class="form-input" placeholder="Profile name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileUsername">Username (optional)</label>
+                    <input type="text" id="profileUsername" class="form-input" placeholder="@username">
+                </div>
+
+                <div class="form-group">
+                    <label for="profilePlatform">Platform *</label>
+                    <select id="profilePlatform" class="form-select" required>
+                        <option value="">Select Platform</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileTopic">Topic *</label>
+                    <div class="input-group">
+                        <select id="profileTopic" class="form-select" required>
+                            <option value="">Select Topic</option>
+                        </select>
+                        <button id="addTopicFromModalBtn" class="btn btn-small">+ Add Topic</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileSubtopic">Subtopic *</label>
+                    <div class="input-group">
+                        <select id="profileSubtopic" class="form-select" required>
+                            <option value="">Select Subtopic</option>
+                        </select>
+                        <button id="addSubtopicFromModalBtn" class="btn btn-small">+ Add Subtopic</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profilePriority">Priority</label>
+                    <select id="profilePriority" class="form-select">
+                        <option value="1">1 - Highest</option>
+                        <option value="2">2 - Very High</option>
+                        <option value="3" selected>3 - High</option>
+                        <option value="4">4 - Medium</option>
+                        <option value="5">5 - Low</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileNotes">Notes</label>
+                    <textarea id="profileNotes" class="form-textarea" placeholder="Add your notes here..." rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileImage">Profile Image</label>
+                    <input type="file" id="profileImage" class="form-input" accept="image/*">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelProfileBtn" class="btn btn-secondary" data-close="profileModal">Cancel</button>
+                <button id="saveProfileBtn" class="btn btn-primary">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Topic Modal -->
+    <div id="topicModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Add Topic</h2>
+                <button class="modal-close" data-close="topicModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="topicName">Topic Name *</label>
+                    <input type="text" id="topicName" class="form-input" placeholder="Enter topic name" required>
+                </div>
+                <div class="form-group">
+                    <label for="topicPriority">Priority</label>
+                    <select id="topicPriority" class="form-select"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelTopicBtn" class="btn btn-secondary" data-close="topicModal">Cancel</button>
+                <button id="saveTopicBtn" class="btn btn-primary">Create Topic</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Topic Modal -->
+    <div id="editTopicModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Edit Topic</h2>
+                <button class="modal-close" data-close="editTopicModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="editTopicName">Topic Name *</label>
+                    <input type="text" id="editTopicName" class="form-input" placeholder="Enter topic name" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTopicPriority">Priority</label>
+                    <select id="editTopicPriority" class="form-select"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEditTopicBtn" class="btn btn-secondary" data-close="editTopicModal">Cancel</button>
+                <button id="saveEditTopicBtn" class="btn btn-primary">Update Topic</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Subtopic Modal -->
+    <div id="subtopicModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Add Subtopic</h2>
+                <button class="modal-close" data-close="subtopicModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="subtopicName">Subtopic Name *</label>
+                    <input type="text" id="subtopicName" class="form-input" placeholder="Enter subtopic name" required>
+                </div>
+                <div class="form-group">
+                    <label for="subtopicPriority">Priority</label>
+                    <select id="subtopicPriority" class="form-select"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelSubtopicBtn" class="btn btn-secondary" data-close="subtopicModal">Cancel</button>
+                <button id="saveSubtopicBtn" class="btn btn-primary">Create Subtopic</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Subtopic Modal -->
+    <div id="editSubtopicModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Edit Subtopic</h2>
+                <button class="modal-close" data-close="editSubtopicModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="editSubtopicName">Subtopic Name *</label>
+                    <input type="text" id="editSubtopicName" class="form-input" placeholder="Enter subtopic name" required>
+                </div>
+                <div class="form-group">
+                    <label for="editSubtopicPriority">Priority</label>
+                    <select id="editSubtopicPriority" class="form-select"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEditSubtopicBtn" class="btn btn-secondary" data-close="editSubtopicModal">Cancel</button>
+                <button id="saveEditSubtopicBtn" class="btn btn-primary">Update Subtopic</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Details Modal -->
+    <div id="profileDetailsModal" class="modal">
+        <div class="modal-content modal-md">
+            <div class="modal-header">
+                <h2>Profile Details</h2>
+                <button class="modal-close" data-close="profileDetailsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="profileDetailsContent">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="editProfileBtn" class="btn btn-primary">Edit</button>
+                <button id="deleteProfileBtn" class="btn btn-danger">Delete</button>
+                <button id="closeDetailsBtn" class="btn btn-secondary" data-close="profileDetailsModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recycle Bin Modal -->
+    <div id="recycleBinModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2>♻ Recycle Bin</h2>
+                <button class="modal-close" data-close="recycleBinModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="recycleBinContent">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="emptyRecycleBinBtn" class="btn btn-danger">Empty Recycle Bin</button>
+                <button id="closeRecycleBinBtn" class="btn btn-secondary" data-close="recycleBinModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Confirm Action</h2>
+                <button class="modal-close" data-close="confirmationModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmationMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelConfirmBtn" class="btn btn-secondary" data-close="confirmationModal">Cancel</button>
+                <button id="confirmActionBtn" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content modal-md">
+            <div class="modal-header">
+                <h2>Import Data</h2>
+                <button class="modal-close" data-close="importModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="importFile">Choose JSON File *</label>
+                    <input type="file" id="importFile" class="form-input" accept=".json" required>
+                </div>
+                <div class="form-group">
+                    <label for="importMode">Import Mode *</label>
+                    <select id="importMode" class="form-select" required>
+                        <option value="merge">Merge with existing data</option>
+                        <option value="replace">Replace existing data</option>
+                    </select>
+                </div>
+                <div id="importPreview" class="import-preview" style="display: none;">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelImportBtn" class="btn btn-secondary" data-close="importModal">Cancel</button>
+                <button id="previewImportBtn" class="btn btn-secondary">Preview</button>
+                <button id="confirmImportBtn" class="btn btn-primary">Import Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Custom Platform Modal -->
+    <div id="customPlatformModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Add Custom Platform</h2>
+                <button class="modal-close" data-close="customPlatformModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="customPlatformName">Platform Name *</label>
+                    <input type="text" id="customPlatformName" class="form-input" placeholder="e.g., MyCustomSite" required>
+                </div>
+                <div class="form-group">
+                    <label for="customPlatformIcon">Icon/Emoji</label>
+                    <input type="text" id="customPlatformIcon" class="form-input" placeholder="🌐" maxlength="2">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelCustomPlatformBtn" class="btn btn-secondary" data-close="customPlatformModal">Cancel</button>
+                <button id="saveCustomPlatformBtn" class="btn btn-primary">Create Platform</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Data Modal -->
+    <div id="demoDataModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Welcome!</h2>
+            </div>
+            <div class="modal-body">
+                <p>This is your first time using Social Media Profile Saver.</p>
+                <p>Would you like to load demo data to explore the features?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="skipDemoBtn" class="btn btn-secondary">Skip</button>
+                <button id="loadDemoBtn" class="btn btn-primary">Load Demo Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="repairs.js"></script>
+</body>
+</html>
