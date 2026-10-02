@@ -146,7 +146,7 @@ function generateId(prefix) {
 }
 
 // ==================== PLATFORM MANAGEMENT ==================== 
-function createPlatform(name, icon = 'ðŸŒ') {
+function createPlatform(name, icon = '🌐') {
     const platform = {
         id: generateId('platform'),
         name: name,
@@ -162,7 +162,7 @@ function createPlatform(name, icon = 'ðŸŒ') {
 
 function getPlatformIcon(name) {
     const key = name.toLowerCase().replace(/\s+/g, '');
-    return PLATFORM_ICONS[key] || 'ðŸŒ';
+    return PLATFORM_ICONS[key] || '🌐';
 }
 
 function getPlatformById(id) {
@@ -1315,7 +1315,7 @@ function generateId(prefix) {
 }
 
 // ==================== PLATFORM MANAGEMENT ==================== 
-function createPlatform(name, icon = 'ðŸŒ') {
+function createPlatform(name, icon = '🌐') {
     const platform = {
         id: generateId('platform'),
         name: name,
@@ -1331,7 +1331,7 @@ function createPlatform(name, icon = 'ðŸŒ') {
 
 function getPlatformIcon(name) {
     const key = name.toLowerCase().replace(/\s+/g, '');
-    return PLATFORM_ICONS[key] || 'ðŸŒ';
+    return PLATFORM_ICONS[key] || '🌐';
 }
 
 function getPlatformById(id) {

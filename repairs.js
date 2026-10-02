@@ -436,15 +436,22 @@ Object.assign(PLATFORM_ICONS, { instagram: '📷', youtube: '▶️', linkedin: 
 renderPlatformTabs = function () {
     const container = document.getElementById('platformTabsContainer'); if (!container) return;
     container.replaceChildren();
+    let repairedIcons = false;
     const platforms = [...appState.platforms].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
     const selectedId = appState.settings.currentPlatformId || platforms[0]?.id || null;
     appState.settings.currentPlatformId = selectedId;
     platforms.forEach(platform => {
+        if (/[\u00f0\u00e2\u00ef\ufffd]/i.test(String(platform.icon || ''))) {
+            const key = String(platform.name || '').trim().toLowerCase();
+            platform.icon = PLATFORM_ICONS[key] || '🌐';
+            repairedIcons = true;
+        }
         const tab = document.createElement('div'); tab.className = `platform-tab${platform.id === selectedId ? ' active' : ''}`; tab.draggable = true; tab.dataset.platformId = platform.id;
         tab.append(document.createTextNode(`${String(platform.icon || '')} ${String(platform.name || '')}`));
         tab.onclick = () => { appState.settings.currentPlatformId = platform.id; saveData(); render(); };
         container.appendChild(tab);
     });
+    if (repairedIcons) saveData();
 };
 
 renderProfileCard = async function (profile) {
