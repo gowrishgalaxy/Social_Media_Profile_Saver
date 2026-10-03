@@ -134,9 +134,11 @@ async function saveData() {
             recycleBin: appState.recycleBin,
             settings: appState.settings
         }));
+        return true;
     } catch (e) {
         console.error('Error saving data:', e);
         showToast('Error saving data', 'error');
+        return false;
     }
 }
 
@@ -801,6 +803,11 @@ function renderPlatformTabs() {
 function renderContent() {
     const currentPlatformId = appState.settings.currentPlatformId || appState.platforms[0]?.id;
     const contentArea = document.getElementById('contentArea');
+    const totalProfileCount = document.getElementById('totalProfileCount');
+    if (totalProfileCount) {
+        const count = appState.profiles.filter(profile => profile.platformId === currentPlatformId).length;
+        totalProfileCount.textContent = `Profiles: ${count}`;
+    }
     contentArea.innerHTML = '';
 
     if (!currentPlatformId) {
@@ -853,6 +860,7 @@ function renderTopicSection(topic) {
             <span class="topic-meta">P${topic.priority} &middot; ${profileCount} profiles</span>
         </div>
         <div class="topic-actions">
+            <button class="btn btn-small btn-primary" onclick="event.stopPropagation(); openAddSubtopicModal('${topic.id}')">+ Add Subtopic</button>
             <button class="btn btn-small btn-secondary" onclick="event.stopPropagation(); editTopic('${topic.id}')">Edit</button>
             <button class="btn btn-small btn-danger" onclick="event.stopPropagation(); confirmDelete('topic', '${topic.id}')">Delete</button>
         </div>
@@ -866,7 +874,6 @@ function renderTopicSection(topic) {
             <div class="empty-state" style="padding: 2rem;">
                 <div class="empty-state-icon">ðŸ“‘</div>
                 <div class="empty-state-title">No Subtopics</div>
-                <button class="btn btn-small btn-primary" onclick="openAddSubtopicModal('${topic.id}')">+ Add Subtopic</button>
             </div>
         `;
     } else {
@@ -974,7 +981,7 @@ async function renderProfileCard(profile) {
             ${profile.notes ? `<div class="profile-notes">${escapeHtml(profile.notes)}</div>` : ''}
             <div class="profile-actions">
                 <button class="btn btn-small btn-primary" onclick="viewProfileDetails('${profile.id}')">View</button>
-                <button class="btn btn-small btn-secondary" onclick="editProfile('${profile.id}')">Edit</button>
+                <button class="btn btn-small btn-secondary" onclick="event.stopPropagation(); editProfile('${profile.id}')">Edit</button>
                 <button class="btn btn-small btn-danger" onclick="confirmDelete('profile', '${profile.id}')">Delete</button>
             </div>
         </div>
@@ -1305,10 +1312,29 @@ function editSubtopic(subtopicId) {
     if (!subtopic) return;
     currentEditingSubtopicId = subtopicId;
     document.getElementById('editSubtopicName').value = subtopic.name;
-    populatePrioritySelect('editSubtopicPriority', subtopic.priority, 25);
+    const topicSelect = document.getElementById('editSubtopicTopic');
+    const parentTopic = getTopicById(subtopic.topicId);
+    const topics = appState.topics
+        .filter(topic => parentTopic && topic.platformId === parentTopic.platformId)
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    topicSelect.innerHTML = topics.map(topic =>
+        `<option value="${topic.id}">${escapeHtml(topic.name)}</option>`
+    ).join('');
+    topicSelect.value = subtopic.topicId;
+    topicSelect.onchange = () => populateEditSubtopicPriorityOptions(topicSelect.value);
+    populateEditSubtopicPriorityOptions(subtopic.topicId, subtopic.priority);
     openModal('editSubtopicModal');
 }
 
+function populateEditSubtopicPriorityOptions(topicId, preferredPriority = null) {
+    const subtopic = getSubtopicById(currentEditingSubtopicId);
+    if (!subtopic) return;
+    const destinationSubtopics = appState.subtopics.filter(item => item.topicId === topicId && item.id !== subtopic.id);
+    const movingWithinTopic = subtopic.topicId === topicId;
+    const selectedPriority = Number(preferredPriority) || (movingWithinTopic ? Number(subtopic.priority) : destinationSubtopics.length + 1);
+    populatePrioritySelect('editSubtopicPriority', selectedPriority, destinationSubtopics.length + 1);
+}
+
 // ==================== UNIQUE ID GENERATION ==================== 
 function generateId(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1970,6 +1996,11 @@ function renderPlatformTabs() {
 function renderContent() {
     const currentPlatformId = appState.settings.currentPlatformId || appState.platforms[0]?.id;
     const contentArea = document.getElementById('contentArea');
+    const totalProfileCount = document.getElementById('totalProfileCount');
+    if (totalProfileCount) {
+        const count = appState.profiles.filter(profile => profile.platformId === currentPlatformId).length;
+        totalProfileCount.textContent = `Profiles: ${count}`;
+    }
     contentArea.innerHTML = '';
 
     if (!currentPlatformId) {
@@ -2022,6 +2053,7 @@ function renderTopicSection(topic) {
             <span class="topic-meta">P${topic.priority} &middot; ${profileCount} profiles</span>
         </div>
         <div class="topic-actions">
+            <button class="btn btn-small btn-primary" onclick="event.stopPropagation(); openAddSubtopicModal('${topic.id}')">+ Add Subtopic</button>
             <button class="btn btn-small btn-secondary" onclick="event.stopPropagation(); editTopic('${topic.id}')">Edit</button>
             <button class="btn btn-small btn-danger" onclick="event.stopPropagation(); confirmDelete('topic', '${topic.id}')">Delete</button>
         </div>
@@ -2035,7 +2067,6 @@ function renderTopicSection(topic) {
             <div class="empty-state" style="padding: 2rem;">
                 <div class="empty-state-icon">ðŸ“‘</div>
                 <div class="empty-state-title">No Subtopics</div>
-                <button class="btn btn-small btn-primary" onclick="openAddSubtopicModal('${topic.id}')">+ Add Subtopic</button>
             </div>
         `;
     } else {
@@ -2143,7 +2174,7 @@ async function renderProfileCard(profile) {
             ${profile.notes ? `<div class="profile-notes">${escapeHtml(profile.notes)}</div>` : ''}
             <div class="profile-actions">
                 <button class="btn btn-small btn-primary" onclick="viewProfileDetails('${profile.id}')">View</button>
-                <button class="btn btn-small btn-secondary" onclick="editProfile('${profile.id}')">Edit</button>
+                <button class="btn btn-small btn-secondary" onclick="event.stopPropagation(); editProfile('${profile.id}')">Edit</button>
                 <button class="btn btn-small btn-danger" onclick="confirmDelete('profile', '${profile.id}')">Delete</button>
             </div>
         </div>
@@ -2474,7 +2505,17 @@ function editSubtopic(subtopicId) {
     if (!subtopic) return;
     currentEditingSubtopicId = subtopicId;
     document.getElementById('editSubtopicName').value = subtopic.name;
-    populatePrioritySelect('editSubtopicPriority', subtopic.priority, 25);
+    const topicSelect = document.getElementById('editSubtopicTopic');
+    const parentTopic = getTopicById(subtopic.topicId);
+    const topics = appState.topics
+        .filter(topic => parentTopic && topic.platformId === parentTopic.platformId)
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    topicSelect.innerHTML = topics.map(topic =>
+        `<option value="${topic.id}">${escapeHtml(topic.name)}</option>`
+    ).join('');
+    topicSelect.value = subtopic.topicId;
+    topicSelect.onchange = () => populateEditSubtopicPriorityOptions(topicSelect.value);
+    populateEditSubtopicPriorityOptions(subtopic.topicId, subtopic.priority);
     openModal('editSubtopicModal');
 }
 
@@ -2685,12 +2726,37 @@ function attachEventListeners() {
 
     document.getElementById('saveEditSubtopicBtn').onclick = () => {
         const name = document.getElementById('editSubtopicName').value.trim();
+        const topicId = document.getElementById('editSubtopicTopic').value;
         const priority = document.getElementById('editSubtopicPriority').value;
-        if (!name) {
-            showToast('Please enter a subtopic name', 'warning');
+        if (!name || !topicId) {
+            showToast('Please enter a subtopic name and select a topic', 'warning');
             return;
         }
-        updateSubtopic(currentEditingSubtopicId, { name, priority });
+        const subtopic = getSubtopicById(currentEditingSubtopicId);
+        if (!subtopic) return;
+        const previousTopicId = subtopic.topicId;
+        updateSubtopic(currentEditingSubtopicId, { name, topicId, priority });
+
+        const orderedSubtopics = appState.subtopics
+            .filter(item => item.topicId === topicId && item.id !== subtopic.id)
+            .sort((a, b) => (Number(a.priority) || 9999) - (Number(b.priority) || 9999) || (Number(a.order) || 0) - (Number(b.order) || 0));
+        const position = Math.max(0, Math.min(orderedSubtopics.length, (Number(priority) || 1) - 1));
+        orderedSubtopics.splice(position, 0, subtopic);
+        orderedSubtopics.forEach((item, index) => {
+            item.priority = index + 1;
+            item.order = index + 1;
+        });
+
+        if (previousTopicId !== topicId) {
+            appState.subtopics
+                .filter(item => item.topicId === previousTopicId)
+                .sort((a, b) => (Number(a.priority) || 9999) - (Number(b.priority) || 9999) || (Number(a.order) || 0) - (Number(b.order) || 0))
+                .forEach((item, index) => {
+                    item.priority = index + 1;
+                    item.order = index + 1;
+                });
+        }
+        saveData();
         showToast('Subtopic updated successfully', 'success');
         closeModal('editSubtopicModal');
         render();

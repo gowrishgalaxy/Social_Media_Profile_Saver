@@ -17,6 +17,8 @@
                 <div class="search-container">
                     <input type="text" id="searchInput" class="search-input" placeholder="Search profiles...">
                 </div>
+                <span id="totalProfileCount" class="header-profile-count" aria-live="polite">Profiles: 0</span>
+                <button id="toggleAllTopicsBtn" class="btn btn-secondary" type="button">Collapse All</button>
                 <button id="addProfileBtn" class="btn btn-primary">+ Add Profile</button>
                 <button id="addTopicBtn" class="btn btn-primary">+ Add Topic</button>
                 <button id="importBtn" class="btn btn-secondary">Import</button>
@@ -221,6 +223,10 @@
                 <div class="form-group">
                     <label for="editSubtopicName">Subtopic Name *</label>
                     <input type="text" id="editSubtopicName" class="form-input" placeholder="Enter subtopic name" required>
+                </div>
+                <div class="form-group">
+                    <label for="editSubtopicTopic">Topic</label>
+                    <select id="editSubtopicTopic" class="form-select" required></select>
                 </div>
                 <div class="form-group">
                     <label for="editSubtopicPriority">Priority</label>

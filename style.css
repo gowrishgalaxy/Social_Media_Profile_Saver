@@ -1324,6 +1324,16 @@ body {
     flex: 0 1 250px;
     min-width: 180px;
 }
+.header-profile-count {
+    flex: 0 0 auto;
+    padding: .35rem .55rem;
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: .75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
 .app-header .btn {
     padding: .45rem .85rem;
     font-size: .85rem;
@@ -1493,12 +1503,29 @@ input:focus, select:focus, textarea:focus {
 @media (max-width: 900px) {
     .header-content,
     .header-actions {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
+    .header-content { gap: .55rem; }
+    .header-title { flex: 0 1 auto; min-width: 0; }
+    .header-title h1 { font-size: clamp(.8rem, 2vw, 1.15rem); white-space: nowrap; }
+    .header-actions { flex: 1 1 auto; min-width: 0; gap: .3rem; }
+    .header-actions .search-container { flex: 1 1 100px; min-width: 70px; }
+    .header-profile-count { padding: .3rem .4rem; font-size: .65rem; }
+    .app-header .btn { white-space: nowrap; padding: .35rem .45rem; font-size: .7rem; }
     .platform-tabs {
         position: relative;
         top: auto;
     }
+}
+@media (max-width: 560px) {
+    .app-header { padding: .4rem .5rem; }
+    .header-content { gap: .35rem; }
+    .header-title h1 { font-size: .72rem; }
+    .header-actions { gap: .2rem; }
+    .header-actions .search-container { flex-basis: 75px; }
+    .header-profile-count { padding: .25rem .3rem; font-size: .58rem; }
+    .header-actions .search-input { padding: .35rem .4rem; font-size: .7rem; }
+    .app-header .btn { padding: .3rem .35rem; font-size: .62rem; }
 }
 
 /* Deep dark theme with violet and cyan accents */

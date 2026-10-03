@@ -157,11 +157,37 @@ function importData(data, mode = 'merge') {
         saveData(); render(); showToast('Import completed.', 'success'); return true;
     } catch (error) { showToast(error.message || 'Could not import this file.', 'error'); return false; }
 }
+function toggleAllTopics() {
+    const topics = [...document.querySelectorAll('#contentArea .topic-section')];
+    if (!topics.length) return;
+    const shouldCollapse = topics.some(section => !section.querySelector('.topic-header')?.classList.contains('collapsed'));
+    topics.forEach(section => {
+        const header = section.querySelector('.topic-header');
+        const content = section.querySelector('.topic-content');
+        header?.classList.toggle('collapsed', shouldCollapse);
+        content?.classList.toggle('collapsed', shouldCollapse);
+    });
+    document.getElementById('toggleAllTopicsBtn').textContent = shouldCollapse ? 'Expand All' : 'Collapse All';
+}
+const _renderContentWithTopicToggleState = renderContent;
+renderContent = function () {
+    _renderContentWithTopicToggleState();
+    const topics = [...document.querySelectorAll('#contentArea .topic-section')];
+    const button = document.getElementById('toggleAllTopicsBtn');
+    if (button) button.textContent = topics.length && topics.every(section => section.querySelector('.topic-header')?.classList.contains('collapsed')) ? 'Expand All' : 'Collapse All';
+    const profileCount = document.getElementById('totalProfileCount');
+    if (profileCount) {
+        const currentPlatformId = appState.settings.currentPlatformId || appState.platforms[0]?.id;
+        const count = appState.profiles.filter(profile => profile.platformId === currentPlatformId).length;
+        profileCount.textContent = `Profiles: ${count}`;
+    }
+};
 let _repairHandlersBound = false;
 const _originalAttachEventListeners = attachEventListeners;
 attachEventListeners = function () {
     _originalAttachEventListeners();
     document.getElementById('addTopicBtn').onclick = openAddTopicModal;
+    document.getElementById('toggleAllTopicsBtn').onclick = toggleAllTopics;
     document.getElementById('addPlatformBtn').onclick = openAddCustomPlatformModal;
     document.getElementById('importBtn').onclick = openImportModal;
     document.getElementById('recycleBinBtn').onclick = () => { renderRecycleBin(); openModal('recycleBinModal'); };
@@ -194,9 +220,9 @@ attachEventListeners = function () {
         if (button.disabled) return;
         const urlInput = document.getElementById('profileUrl');
         const name = document.getElementById('profileName').value.trim();
-        const platformId = document.getElementById('profilePlatform').value;
-        const topicId = document.getElementById('profileTopic').value;
-        const subtopicId = document.getElementById('profileSubtopic').value;
+        let platformId = document.getElementById('profilePlatform').value;
+        let topicId = document.getElementById('profileTopic').value;
+        let subtopicId = document.getElementById('profileSubtopic').value;
         let url;
         try {
             url = normalizeProfileUrl(urlInput.value).href;
@@ -207,12 +233,30 @@ attachEventListeners = function () {
             return;
         }
         if (!name) { showToast('Enter a profile name.', 'warning'); return; }
-        if (!platformId || getTopicById(topicId)?.platformId !== platformId || getSubtopicById(subtopicId)?.topicId !== topicId) {
+        const editingId = currentEditingProfileId;
+        const profileBeingEdited = editingId ? getProfileById(editingId) : null;
+        if (editingId && !profileBeingEdited) {
+            showToast('This profile is no longer available. Close the editor and try again.', 'error');
+            return;
+        }
+        const hierarchyIsValid = () => Boolean(
+            platformId &&
+            getTopicById(topicId)?.platformId === platformId &&
+            getSubtopicById(subtopicId)?.topicId === topicId
+        );
+        // Older saved records and dependent dropdown refreshes can leave one or
+        // more selects blank. When editing, keep the existing valid location.
+        if (!hierarchyIsValid() && profileBeingEdited) {
+            platformId = profileBeingEdited.platformId;
+            topicId = profileBeingEdited.topicId;
+            subtopicId = profileBeingEdited.subtopicId;
+        }
+        if (!hierarchyIsValid() && !profileBeingEdited) {
             showToast('Choose a matching platform, topic, and subtopic.', 'warning');
             return;
         }
         const duplicate = checkDuplicateProfile(url);
-        if (duplicate && duplicate.id !== currentEditingProfileId) {
+        if (duplicate && duplicate.id !== editingId) {
             showToast('A profile with this URL already exists.', 'warning');
             return;
         }
@@ -220,7 +264,7 @@ attachEventListeners = function () {
         button.disabled = true;
         button.textContent = 'Saving…';
         try {
-            const oldProfile = currentEditingProfileId ? getProfileById(currentEditingProfileId) : null;
+            const oldProfile = profileBeingEdited;
             const previousSubtopicId = oldProfile?.subtopicId || null;
             const file = document.getElementById('profileImage').files?.[0];
             let imageId = oldProfile?.imageId || null;
@@ -253,12 +297,12 @@ attachEventListeners = function () {
                 imageUrl: fetchedImageUrl || oldProfile?.imageUrl || null
             };
             const savedProfile = oldProfile
-                ? (updateProfile(oldProfile.id, data), getProfileById(oldProfile.id))
+                ? Object.assign(oldProfile, data, { updatedAt: new Date().toISOString() })
                 : createProfile(data);
             if (!savedProfile) throw new Error('The profile record could not be created.');
             if (previousSubtopicId && previousSubtopicId !== subtopicId) renumberProfiles(previousSubtopicId);
             setProfilePosition(savedProfile.id, subtopicId, selectedPosition);
-            saveData();
+            if (!await saveData()) throw new Error('The profile could not be saved to browser storage. Check available storage space and try again.');
             currentEditingProfileId = null;
             closeModal('profileModal');
             render();
@@ -272,7 +316,23 @@ attachEventListeners = function () {
         }
     };
     document.getElementById('saveEditTopicBtn').onclick = () => { const name = document.getElementById('editTopicName').value.trim(); if (!name) return showToast('Enter a topic name.', 'warning'); const priority = Number(document.getElementById('editTopicPriority').value) || 1; updateTopic(currentEditingTopicId, { name, priority }); setHierarchyPosition('topic', currentEditingTopicId, priority); saveData(); closeModal('editTopicModal'); render(); };
-    document.getElementById('saveEditSubtopicBtn').onclick = () => { const name = document.getElementById('editSubtopicName').value.trim(); if (!name) return showToast('Enter a subtopic name.', 'warning'); const priority = Number(document.getElementById('editSubtopicPriority').value) || 1; updateSubtopic(currentEditingSubtopicId, { name, priority }); setHierarchyPosition('subtopic', currentEditingSubtopicId, priority); saveData(); closeModal('editSubtopicModal'); render(); };
+    document.getElementById('saveEditSubtopicBtn').onclick = () => {
+        const name = document.getElementById('editSubtopicName').value.trim();
+        const topicId = document.getElementById('editSubtopicTopic').value;
+        const subtopic = getSubtopicById(currentEditingSubtopicId);
+        if (!name) return showToast('Enter a subtopic name.', 'warning');
+        if (!topicId || !subtopic) return showToast('Choose a topic for this subtopic.', 'warning');
+
+        const previousTopicId = subtopic.topicId;
+        const priority = Number(document.getElementById('editSubtopicPriority').value) || 1;
+        updateSubtopic(currentEditingSubtopicId, { name, topicId, priority });
+        setHierarchyPosition('subtopic', currentEditingSubtopicId, priority);
+        if (previousTopicId !== topicId) renumberHierarchy('subtopic', previousTopicId);
+        saveData();
+        closeModal('editSubtopicModal');
+        render();
+        showToast('Subtopic updated.', 'success');
+    };
     document.getElementById('editProfileBtn').onclick = () => { const id = document.getElementById('profileDetailsContent').dataset.profileId; closeModal('profileDetailsModal'); editProfile(id); };
     document.getElementById('deleteProfileBtn').onclick = () => { const id = document.getElementById('profileDetailsContent').dataset.profileId; closeModal('profileDetailsModal'); confirmDelete('profile', id); };
     document.getElementById('previewImportBtn').onclick = async () => {
@@ -317,11 +377,43 @@ attachEventListeners = function () {
     }
 };
 const _originalViewProfileDetails = viewProfileDetails;
+function renderNoteLinks(container, noteText) {
+    const text = String(noteText || '');
+    container.replaceChildren();
+    const urlPattern = /(?:https?:\/\/|www\.)[^\s<>]+/gi;
+    let cursor = 0;
+    for (const match of text.matchAll(urlPattern)) {
+        const rawUrl = match[0];
+        const url = rawUrl.replace(/[),.!?;:]+$/, '');
+        if (!url) continue;
+        const start = match.index;
+        container.append(document.createTextNode(text.slice(cursor, start)));
+        const href = url.startsWith('www.') ? `https://${url}` : url;
+        try {
+            if (!['http:', 'https:'].includes(new URL(href).protocol)) throw new Error('Unsupported URL');
+            const link = document.createElement('a');
+            link.href = href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = url;
+            container.append(link);
+        } catch {
+            container.append(document.createTextNode(url));
+        }
+        container.append(document.createTextNode(rawUrl.slice(url.length)));
+        cursor = start + rawUrl.length;
+    }
+    container.append(document.createTextNode(text.slice(cursor)));
+}
+
 viewProfileDetails = function (profileId) {
     const content = document.getElementById('profileDetailsContent');
     content.dataset.profileId = profileId;
     _originalViewProfileDetails(profileId);
     const profile = getProfileById(profileId);
+    const notesLabel = [...content.querySelectorAll('div')].find(node => node.textContent.trim() === 'Notes');
+    const notesValue = notesLabel?.nextElementSibling;
+    if (notesValue) renderNoteLinks(notesValue, profile?.notes);
     const fallback = content.querySelector('.profile-image-placeholder');
     if (fallback) fallback.textContent = String(profile?.name || '?').trim().charAt(0).toUpperCase() || '?';
     content.querySelectorAll('div').forEach(label => {
@@ -374,6 +466,10 @@ render = function () {
 function moveHierarchyItem(type, id, requestedPosition) {
     const item = type === 'topic' ? getTopicById(id) : getSubtopicById(id);
     if (!item) return;
+    const collapsedTopics = new Map([...document.querySelectorAll('#contentArea .topic-section')]
+        .map(section => [section.dataset.topicId, section.querySelector('.topic-header')?.classList.contains('collapsed') || false]));
+    const collapsedSubtopics = new Map([...document.querySelectorAll('#contentArea .subtopic-section')]
+        .map(section => [section.dataset.subtopicId, section.querySelector('.subtopic-header')?.classList.contains('collapsed') || false]));
     const siblings = type === 'topic'
         ? appState.topics.filter(candidate => candidate.platformId === item.platformId)
         : appState.subtopics.filter(candidate => candidate.topicId === item.topicId);
@@ -387,6 +483,21 @@ function moveHierarchyItem(type, id, requestedPosition) {
     });
     saveData();
     render();
+    document.querySelectorAll('#contentArea .topic-section').forEach(section => {
+        const collapsed = collapsedTopics.get(section.dataset.topicId);
+        if (collapsed === undefined) return;
+        section.querySelector('.topic-header')?.classList.toggle('collapsed', collapsed);
+        section.querySelector('.topic-content')?.classList.toggle('collapsed', collapsed);
+    });
+    document.querySelectorAll('#contentArea .subtopic-section').forEach(section => {
+        const collapsed = collapsedSubtopics.get(section.dataset.subtopicId);
+        if (collapsed === undefined) return;
+        section.querySelector('.subtopic-header')?.classList.toggle('collapsed', collapsed);
+        section.querySelector('.subtopic-content')?.classList.toggle('collapsed', collapsed);
+    });
+    const topics = [...document.querySelectorAll('#contentArea .topic-section')];
+    const toggleButton = document.getElementById('toggleAllTopicsBtn');
+    if (toggleButton) toggleButton.textContent = topics.length && topics.every(section => section.querySelector('.topic-header')?.classList.contains('collapsed')) ? 'Expand All' : 'Collapse All';
 }
 
 function addHierarchyPrioritySelect(header, type, item, siblingCount) {
@@ -738,6 +849,8 @@ async function handleProfileFetch() {
     }
 
     const originalText = button.textContent;
+    const selectedTopicId = document.getElementById('profileTopic').value;
+    const selectedSubtopicId = document.getElementById('profileSubtopic').value;
     button.disabled = true;
     button.textContent = 'Fetching…';
     preview.style.display = 'none';
@@ -751,6 +864,15 @@ async function handleProfileFetch() {
     if (platform) {
         document.getElementById('profilePlatform').value = platform.id;
         updateTopicDropdown();
+        const topicSelect = document.getElementById('profileTopic');
+        if ([...topicSelect.options].some(option => option.value === selectedTopicId)) {
+            topicSelect.value = selectedTopicId;
+            updateSubtopicDropdown();
+            const subtopicSelect = document.getElementById('profileSubtopic');
+            if ([...subtopicSelect.options].some(option => option.value === selectedSubtopicId)) {
+                subtopicSelect.value = selectedSubtopicId;
+            }
+        }
         document.getElementById('previewPlatform').textContent = `${platform.icon || ''} ${platform.name}`;
     } else {
         document.getElementById('previewPlatform').textContent = 'Platform not detected — select one below';
